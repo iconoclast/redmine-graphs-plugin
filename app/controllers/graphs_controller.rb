@@ -104,7 +104,9 @@ class GraphsController < ApplicationController
         sql << " WHERE (%s)" % Project.allowed_to_condition(User.current, :view_issues)
         unless @project.nil?
             sql << " AND (project_id = #{@project.id}"
-            sql << "    OR project_id IN (%s)" % @project.descendants.active.visible.collect { |p| p.id }.join(',') unless @project.descendants.active.visible.empty?
+            unless @project.descendants.empty?
+           	sql << "    OR project_id IN (%s)" % @project.descendants.active.visible.collect { |p| p.id }.join(',') unless @project.descendants.active.visible.empty?
+            end
             sql << " )"
         end 
         sql << " GROUP BY project_id"
@@ -262,7 +264,7 @@ class GraphsController < ApplicationController
         find_optional_project
         if !@project.nil?
             ids = [@project.id]
-            ids += @project.descendants.active.visible.collect(&:id)
+            ids += @project.descendants.active.visible.collect(&:id) unless @project.descendants.empty?
             @issues = Issue.visible.find(:first, :conditions => ["#{Project.table_name}.id IN (?)", ids])
         else
             @issues = Issue.visible.find(:first)
@@ -275,7 +277,7 @@ class GraphsController < ApplicationController
         find_optional_project
         if !@project.nil?
             ids = [@project.id]
-            ids += @project.descendants.active.visible.collect(&:id)
+            ids += @project.descendants.active.visible.collect(&:id) unless @project.descendants.empty?
             @issues = Issue.visible.find(:all, :include => [:status], :conditions => ["#{IssueStatus.table_name}.is_closed=? AND #{Project.table_name}.id IN (?)", false, ids])
         else
             @issues = Issue.visible.find(:all, :include => [:status], :conditions => ["#{IssueStatus.table_name}.is_closed=?", false])
